@@ -1,4 +1,114 @@
+module Inventory
+  class Quality
+    attr_reader :amount
+
+    def initialize(amount)
+      @amount = amount
+    end
+
+    def degrade
+      @amount -= 1 if @amount > 0
+    end
+
+    def increase
+      @amount += 1 if @amount < 50
+    end
+
+    def reset
+      @amount = 0
+    end
+
+    def less_than_50?
+      @amount < 50
+    end
+  end
+
+  class Generic
+    attr_reader :sell_in
+
+    def initialize(quality, sell_in)
+      @quality = Quality.new(quality)
+      @sell_in = sell_in
+    end
+
+    def quality
+      @quality.amount
+    end
+
+    def update
+      @quality.degrade
+      # @sell_in -= 1
+      @quality.degrade if sell_in < 0
+    end
+  end
+
+  class AgedBrie
+    attr_reader :sell_in
+
+    def initialize(quality, sell_in)
+      @quality = Quality.new(quality)
+      @sell_in = sell_in
+    end
+
+    def quality
+      @quality.amount
+    end
+
+    def update
+      @quality.increase
+      # @sell_in -= 1
+      @quality.increase if @sell_in < 0
+    end
+  end
+
+  class BackstagePass
+    attr_reader :sell_in
+
+    def initialize(quality, sell_in)
+      @quality = Quality.new(quality)
+      @sell_in = sell_in
+    end
+
+    def quality
+      @quality.amount
+    end
+
+    def update
+      @quality.increase
+      @quality.increase if @sell_in < 11
+      @quality.increase if @sell_in < 6
+      # @sell_in -= 1
+      @quality.reset if @sell_in < 0
+    end
+  end
+end
+
 class GildedRose
+  class GoodCategory
+    def build_for(item)
+      if generic?(item)
+        Inventory::Generic.new(item.quality, item.sell_in)
+      elsif aged_brie?(item)
+        Inventory::AgedBrie.new(item.quality, item.sell_in)
+      elsif backstage_pass?(item)
+        Inventory::BackstagePass.new(item.quality, item.sell_in)
+      end
+    end
+
+    private
+
+    def aged_brie?(item)
+      item.name == 'Aged Brie'
+    end
+
+    def backstage_pass?(item)
+      item.name == 'Backstage passes to a TAFKAL80ETC concert'
+    end
+
+    def generic?(item)
+      !(aged_brie?(item) || backstage_pass?(item))
+    end
+  end
 
   def initialize(items)
     @items = items
@@ -6,87 +116,20 @@ class GildedRose
 
   def update_quality
     @items.each do |item|
-      if sulfuras?(item)
-      elsif generic?(item)
-        if item.quality > 0
-          decrease_quality(item)
-        end
-      elsif aged_brie?(item)
-        if quality_less_than_50(item)
-          increase_quality(item)
-        end
-      elsif backstage_pass?(item)
-        handle_backstage_pass(item)
-      end
-      if !sulfuras?(item)
-        item.sell_in = item.sell_in - 1
-      end
-      if item.sell_in < 0
-        if !aged_brie?(item)
-          if !backstage_pass?(item)
-            if item.quality > 0
-              if !sulfuras?(item)
-                decrease_quality(item)
-              end
-            end
-          else
-            item.quality = item.quality - item.quality
-          end
-        else
-          if quality_less_than_50(item)
-            increase_quality(item)
-          end
-        end
-      end
+      next if sulfuras?(item)
+
+      item.sell_in -= 1
+      good = GoodCategory.new.build_for(item)
+      good.update
+      item.quality = good.quality
     end
   end
 
   private
 
-  def handle_backstage_pass(item)
-    if quality_less_than_50(item)
-      increase_quality(item)
-      if item.sell_in < 11
-        if quality_less_than_50(item)
-          increase_quality(item)
-        end
-      end
-      if item.sell_in < 6
-        if quality_less_than_50(item)
-          increase_quality(item)
-        end
-      end
-    end
-  end
-
-  def decrease_quality(item)
-    item.quality = item.quality - 1
-  end
-
-  def increase_quality(item)
-    item.quality = item.quality + 1
-  end
-
-  def quality_less_than_50(item)
-    item.quality < 50
-  end
-
-  def aged_brie?(item)
-    item.name == "Aged Brie"
-  end
-
-  def backstage_pass?(item)
-    item.name == "Backstage passes to a TAFKAL80ETC concert"
-  end
-
   def sulfuras?(item)
-    item.name == "Sulfuras, Hand of Ragnaros"
+    item.name == 'Sulfuras, Hand of Ragnaros'
   end
-
-  def generic?(item)
-    !(aged_brie?(item) || backstage_pass?(item) || sulfuras?(item))
-  end
-
 end
 
 class Item
@@ -98,7 +141,7 @@ class Item
     @quality = quality
   end
 
-  def to_s()
+  def to_s
     "#{@name}, #{@sell_in}, #{@quality}"
   end
 end
