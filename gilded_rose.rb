@@ -1,112 +1,95 @@
-module Inventory
-  class Quality
-    attr_reader :amount
-
-    def initialize(amount)
-      @amount = amount
-    end
-
-    def degrade
-      @amount -= 1 if @amount > 0
-    end
-
-    def increase
-      @amount += 1 if @amount < 50
-    end
-
-    def reset
-      @amount = 0
-    end
-
-    def less_than_50?
-      @amount < 50
-    end
-  end
-
-  class Generic
-    attr_reader :sell_in
-
-    def initialize(quality, sell_in)
-      @quality = Quality.new(quality)
-      @sell_in = sell_in
-    end
-
-    def quality
-      @quality.amount
-    end
-
-    def update
-      @quality.degrade
-      # @sell_in -= 1
-      @quality.degrade if sell_in < 0
-    end
-  end
-
-  class AgedBrie
-    attr_reader :sell_in
-
-    def initialize(quality, sell_in)
-      @quality = Quality.new(quality)
-      @sell_in = sell_in
-    end
-
-    def quality
-      @quality.amount
-    end
-
-    def update
-      @quality.increase
-      # @sell_in -= 1
-      @quality.increase if @sell_in < 0
-    end
-  end
-
-  class BackstagePass
-    attr_reader :sell_in
-
-    def initialize(quality, sell_in)
-      @quality = Quality.new(quality)
-      @sell_in = sell_in
-    end
-
-    def quality
-      @quality.amount
-    end
-
-    def update
-      @quality.increase
-      @quality.increase if @sell_in < 11
-      @quality.increase if @sell_in < 6
-      # @sell_in -= 1
-      @quality.reset if @sell_in < 0
-    end
-  end
-end
-
 class GildedRose
-  class GoodCategory
-    def build_for(item)
-      if generic?(item)
-        Inventory::Generic.new(item.quality, item.sell_in)
-      elsif aged_brie?(item)
-        Inventory::AgedBrie.new(item.quality, item.sell_in)
-      elsif backstage_pass?(item)
-        Inventory::BackstagePass.new(item.quality, item.sell_in)
+  module Inventory
+    class Quality
+      attr_reader :amount
+
+      def initialize(amount)
+        @amount = amount
+      end
+
+      def degrade
+        @amount -= 1 if amount > 0
+      end
+
+      def increase
+        @amount += 1 if amount < 50
+      end
+
+      def reset
+        @amount = 0
       end
     end
 
-    private
+    class Generic
+      attr_reader :sell_in
 
-    def aged_brie?(item)
-      item.name == 'Aged Brie'
+      def initialize(quality, sell_in)
+        @quality = Quality.new(quality)
+        @sell_in = sell_in
+      end
+
+      def quality
+        @quality.amount
+      end
+
+      def update
+        @quality.degrade
+        # @sell_in -= 1
+        @quality.degrade if sell_in < 0
+      end
     end
 
-    def backstage_pass?(item)
-      item.name == 'Backstage passes to a TAFKAL80ETC concert'
+    class AgedBrie
+      attr_reader :sell_in
+
+      def initialize(quality, sell_in)
+        @quality = Quality.new(quality)
+        @sell_in = sell_in
+      end
+
+      def quality
+        @quality.amount
+      end
+
+      def update
+        @quality.increase
+        # @sell_in -= 1
+        @quality.increase if sell_in < 0
+      end
     end
 
-    def generic?(item)
-      !(aged_brie?(item) || backstage_pass?(item))
+    class BackstagePass
+      attr_reader :sell_in
+
+      def initialize(quality, sell_in)
+        @quality = Quality.new(quality)
+        @sell_in = sell_in
+      end
+
+      def quality
+        @quality.amount
+      end
+
+      def update
+        @quality.increase
+        @quality.increase if sell_in < 11
+        @quality.increase if sell_in < 6
+        # @sell_in -= 1
+        @quality.reset if sell_in < 0
+      end
+    end
+  end
+
+  class GoodCategory
+    def build_for(item)
+      case item.name
+      when 'Aged Brie'
+        Inventory::AgedBrie.new(item.quality, item.sell_in)
+      when 'Backstage passes to a TAFKAL80ETC concert'
+        Inventory::BackstagePass.new(item.quality, item.sell_in)
+      else
+        Inventory::Generic.new(item.quality, item.sell_in)
+      end
     end
   end
 

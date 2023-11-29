@@ -1,22 +1,33 @@
-require_relative './test_helper'
+# frozen_string_literal: true
+
+require_relative 'test_helper'
 
 class GildedRoseTest < Minitest::Test
+  # cover Inventory
+  cover GildedRose
+  # bundle exec mutant run --require ./gilded_rose.rb --integration minitest -- Inventory::Generic
   def test_foo
     items = [Item.new('foo', 0, 0)]
     GildedRose.new(items).update_quality
     assert_equal items[0].name, 'foo'
   end
 
-  def assert_backstage_pass_quality(expected, sell_in, quality)
-    items = [Item.new('Backstage passes to a TAFKAL80ETC concert', sell_in, quality)]
+  def assert_quality(category, expected, sell_in, quality)
+    items = [Item.new(category, sell_in, quality)]
     GildedRose.new(items).update_quality
     assert_equal(expected, items[0].quality)
   end
 
+  def assert_backstage_pass_quality(expected, sell_in, quality)
+    assert_quality('Backstage passes to a TAFKAL80ETC concert', expected, sell_in, quality)
+  end
+
   def assert_aged_brie_quality(expected, sell_in, quality)
-    items = [Item.new('Aged Brie', sell_in, quality)]
-    GildedRose.new(items).update_quality
-    assert_equal(expected, items[0].quality)
+    assert_quality('Aged Brie', expected, sell_in, quality)
+  end
+
+  def assert_generic_quality(expected, sell_in, quality)
+    assert_quality('foo', expected, sell_in, quality)
   end
 
   def test_backstage_pass
@@ -24,16 +35,24 @@ class GildedRoseTest < Minitest::Test
     assert_backstage_pass_quality(23, 4, 20)
     assert_backstage_pass_quality(23, 4, 20)
     assert_backstage_pass_quality(0, 0, 20)
+    assert_backstage_pass_quality(23, 1, 20)
+    assert_backstage_pass_quality(23, 6, 20)
+    assert_backstage_pass_quality(22, 7, 20)
+    assert_backstage_pass_quality(22, 11, 20)
+    assert_backstage_pass_quality(21, 12, 20)
   end
 
   def test_aged_brie
     assert_aged_brie_quality(22, 0, 20)
+    assert_aged_brie_quality(21, 1, 20)
   end
 
   def test_generic
-    items = [Item.new('foo', -1, 3)]
-    GildedRose.new(items).update_quality
-    assert_equal(1, items[0].quality)
+    assert_generic_quality(1, -1, 3)
+    assert_generic_quality(1, 0, 3)
+    assert_generic_quality(2, 1, 3)
+    assert_generic_quality(0, 1, 0)
+    assert_generic_quality(0, 1, 1)
   end
 
   def test_report
