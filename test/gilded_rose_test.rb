@@ -30,15 +30,18 @@ class GildedRoseTest < Minitest::Test
     assert_quality('foo', expected, sell_in, quality)
   end
 
+  def assert_conjured_quality(expected, sell_in, quality)
+    assert_quality('Conjured Mana Cake', expected, sell_in, quality)
+  end
+
   def test_backstage_pass
-    assert_backstage_pass_quality(22, 8, 20)
-    assert_backstage_pass_quality(23, 4, 20)
-    assert_backstage_pass_quality(23, 4, 20)
     assert_backstage_pass_quality(0, 0, 20)
     assert_backstage_pass_quality(23, 1, 20)
-    assert_backstage_pass_quality(23, 6, 20)
+    assert_backstage_pass_quality(23, 5, 20)
+    assert_backstage_pass_quality(22, 6, 20)
     assert_backstage_pass_quality(22, 7, 20)
-    assert_backstage_pass_quality(22, 11, 20)
+    assert_backstage_pass_quality(22, 10, 20)
+    assert_backstage_pass_quality(21, 11, 20)
     assert_backstage_pass_quality(21, 12, 20)
   end
 
@@ -55,6 +58,15 @@ class GildedRoseTest < Minitest::Test
     assert_generic_quality(0, 1, 1)
   end
 
+  def test_conjured
+    assert_conjured_quality(0, -1, 3)
+    assert_conjured_quality(0, 0, 3)
+    assert_conjured_quality(1, 1, 3)
+    assert_conjured_quality(0, 1, 0)
+    assert_conjured_quality(0, 1, 1)
+    assert_conjured_quality(0, 0, 4)
+  end
+
   def test_report
     report_lines = []
     items = [
@@ -66,7 +78,7 @@ class GildedRoseTest < Minitest::Test
       Item.new(name = 'Backstage passes to a TAFKAL80ETC concert', sell_in = 15, quality = 20),
       Item.new(name = 'Backstage passes to a TAFKAL80ETC concert', sell_in = 10, quality = 49),
       Item.new(name = 'Backstage passes to a TAFKAL80ETC concert', sell_in = 5, quality = 49),
-      # This Conjured item does not work properly yet
+      # This Conjured item does not work properly yet, it should decrease twice faster than normal items
       Item.new(name = 'Conjured Mana Cake', sell_in = 3, quality = 6) # <-- :O
     ]
 
@@ -106,7 +118,8 @@ class GildedRoseTest < Minitest::Test
         'Sulfuras, Hand of Ragnaros, -1, 80',
         'Backstage passes to a TAFKAL80ETC concert, 14, 21',
         'Backstage passes to a TAFKAL80ETC concert, 9, 50',
-        'Backstage passes to a TAFKAL80ETC concert, 4, 50', 'Conjured Mana Cake, 2, 5',
+        'Backstage passes to a TAFKAL80ETC concert, 4, 50',
+        'Conjured Mana Cake, 2, 4',
         ''
       ],
       report_lines
