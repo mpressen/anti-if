@@ -3,6 +3,8 @@ require 'spec_helper'
 
 describe GildedRose do
 
+  # bundle exec mutant run --require ./lib/gilded_rose.rb --integration rspec -- 'GildedRose*'
+
   describe "#update_quality" do
     it "does not change the name" do
       items = [Item.new("foo", 0, 0)]
