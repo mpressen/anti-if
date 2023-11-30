@@ -1,166 +1,55 @@
 class GildedRose
-  module Inventory
-    class Quality
-      attr_reader :amount
-
-      def initialize(amount)
-        @amount = amount
-      end
-
-      def degrade
-        @amount -= 1 if amount > 0
-      end
-
-      def increase
-        @amount += 1 if amount < 50
-      end
-
-      def reset
-        @amount = 0
-      end
-    end
-
-    class Generic
-      def self.build(sell_in)
-        if sell_in < 0
-          Expired.new
-        else
-          new
-        end
-      end
-
-      class Expired
-        def update(quality)
-          quality.degrade
-          quality.degrade
-        end
-      end
-
-      def update(quality)
-        quality.degrade
-      end
-    end
-
-    class Conjured
-      def self.build(sell_in)
-        if sell_in < 0
-          Expired.new
-        else
-          new
-        end
-      end
-
-      class Expired
-        def update(quality)
-          quality.degrade
-          quality.degrade
-          quality.degrade
-          quality.degrade
-        end
-      end
-
-      def update(quality)
-        quality.degrade
-        quality.degrade
-      end
-    end
-
-    class AgedBrie
-      def self.build(sell_in)
-        if sell_in < 0
-          Expired.new
-        else
-          new
-        end
-      end
-
-      class Expired
-        def update(quality)
-          quality.increase
-          quality.increase
-        end
-      end
-
-      def update(quality)
-        quality.increase
-      end
-    end
-
-    class BackstagePass
-      def self.build(sell_in)
-        if sell_in < 0
-          Expired.new
-        elsif sell_in < 5
-          LessThan5days.new
-        elsif sell_in < 10
-          LessThan10days.new
-        else
-          new
-        end
-      end
-
-      class Expired
-        def update(quality)
-          quality.reset
-        end
-      end
-
-      class LessThan5days
-        def update(quality)
-          quality.increase
-          quality.increase
-          quality.increase
-        end
-      end
-
-      class LessThan10days
-        def update(quality)
-          quality.increase
-          quality.increase
-        end
-      end
-
-      def update(quality)
-        quality.increase
-      end
-    end
-  end
-
-  class GoodCategory
-    def build_for(item)
-      case item.name
-      when 'Aged Brie'
-        Inventory::AgedBrie.build(item.sell_in)
-      when 'Backstage passes to a TAFKAL80ETC concert'
-        Inventory::BackstagePass.build(item.sell_in)
-      when 'Conjured Mana Cake'
-        Inventory::Conjured.build(item.sell_in)
-      else
-        Inventory::Generic.build(item.sell_in)
-      end
-    end
-  end
 
   def initialize(items)
     @items = items
   end
 
-  def update_quality
+  def update_quality()
     @items.each do |item|
-      next if sulfuras?(item)
-
-      item.sell_in -= 1
-      quality = Inventory::Quality.new(item.quality)
-      good = GoodCategory.new.build_for(item)
-      good.update(quality)
-      item.quality = quality.amount
+      if item.name != "Aged Brie" and item.name != "Backstage passes to a TAFKAL80ETC concert"
+        if item.quality > 0
+          if item.name != "Sulfuras, Hand of Ragnaros"
+            item.quality = item.quality - 1
+          end
+        end
+      else
+        if item.quality < 50
+          item.quality = item.quality + 1
+          if item.name == "Backstage passes to a TAFKAL80ETC concert"
+            if item.sell_in < 11
+              if item.quality < 50
+                item.quality = item.quality + 1
+              end
+            end
+            if item.sell_in < 6
+              if item.quality < 50
+                item.quality = item.quality + 1
+              end
+            end
+          end
+        end
+      end
+      if item.name != "Sulfuras, Hand of Ragnaros"
+        item.sell_in = item.sell_in - 1
+      end
+      if item.sell_in < 0
+        if item.name != "Aged Brie"
+          if item.name != "Backstage passes to a TAFKAL80ETC concert"
+            if item.quality > 0
+              if item.name != "Sulfuras, Hand of Ragnaros"
+                item.quality = item.quality - 1
+              end
+            end
+          else
+            item.quality = item.quality - item.quality
+          end
+        else
+          if item.quality < 50
+            item.quality = item.quality + 1
+          end
+        end
+      end
     end
-  end
-
-  private
-
-  def sulfuras?(item)
-    item.name == 'Sulfuras, Hand of Ragnaros'
   end
 end
 
@@ -173,7 +62,7 @@ class Item
     @quality = quality
   end
 
-  def to_s
+  def to_s()
     "#{@name}, #{@sell_in}, #{@quality}"
   end
 end
