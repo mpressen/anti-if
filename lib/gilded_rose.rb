@@ -1,5 +1,30 @@
 class GildedRose
   module Inventory
+    module Quality
+      MIN_QUALITY = 0
+      MAX_QUALITY = 50
+
+      attr_reader :quality
+
+      private
+
+      def degrade_quality!
+        @quality -= 1 if quality > MIN_QUALITY
+      end
+
+      def increase_quality!
+        @quality += 1 if quality < MAX_QUALITY
+      end
+    end
+
+    module SellIn
+      attr_reader :sell_in
+
+      private def decrease_sell_in!
+        @sell_in -= 1
+      end
+    end
+
     class Good
       def self.for(item)
         case item.name
@@ -24,7 +49,7 @@ class GildedRose
         end
       end
 
-      attr_reader :sell_in, :quality
+      include Quality, SellIn
 
       def initialize(sell_in, quality)
         @sell_in = sell_in
@@ -38,10 +63,6 @@ class GildedRose
 
       private
 
-      def decrease_sell_in!
-        @sell_in -= 1
-      end
-
       def update_quality!
         degrade_quality!
       end
@@ -51,17 +72,6 @@ class GildedRose
           2.times { degrade_quality! }
         end
       end
-
-      MIN_QUALITY = 0
-      MAX_QUALITY = 50
-
-      def degrade_quality!
-        @quality -= 1 if quality > MIN_QUALITY
-      end
-
-      def increase_quality!
-        @quality += 1 if quality < MAX_QUALITY
-      end
     end
 
     class Conjured < Good
@@ -69,7 +79,7 @@ class GildedRose
         2.times { degrade_quality! }
       end
 
-      class Expired < Conjured
+      class Expired < Good
         private def update_quality!
           4.times { degrade_quality! }
         end
@@ -81,7 +91,7 @@ class GildedRose
         increase_quality!
       end
 
-      class Expired < AgedBrie
+      class Expired < Good
         private def update_quality!
           2.times { increase_quality! }
         end
@@ -91,7 +101,7 @@ class GildedRose
     class BackstagePass < Good
       def self.build(sell_in, quality)
         if sell_in <= 0
-          Expired.new(sell_in, quality)
+          Expired.new(sell_in)
         elsif sell_in <= 5
           LessThan5Days.new(sell_in, quality)
         elsif sell_in <= 10
@@ -105,21 +115,25 @@ class GildedRose
         increase_quality!
       end
 
-      class LessThan10Days < BackstagePass
+      class LessThan10Days < Good
         private def update_quality!
           2.times { increase_quality! }
         end
       end
 
-      class LessThan5Days < BackstagePass
+      class LessThan5Days < Good
         private def update_quality!
           3.times { increase_quality! }
         end
       end
 
-      class Expired < BackstagePass
+      class Expired < Good
+        def initialize(sell_in)
+          @sell_in = sell_in
+        end
+
         private def update_quality!
-          @quality = quality - quality
+          @quality = 0
         end
       end
     end
@@ -128,7 +142,6 @@ class GildedRose
       def update!
       end
     end
-
   end
 
   def initialize(items)
