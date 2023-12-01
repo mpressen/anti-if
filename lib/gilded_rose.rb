@@ -1,44 +1,34 @@
 class GildedRose
   module Inventory
     class Good
-      module Quality
-        MAX = 50
-        MIN = 0
-
-        def self.degrade(item)
-          item.quality -= 1 if item.quality > MIN
-        end
-
-        def self.increase(item)
-          item.quality += 1 if item.quality < MAX
-        end
-      end
-
       def self.for(item)
         case item.name
         when "Aged Brie"
-          AgedBrie.build(item)
+          AgedBrie.build(item.sell_in, item.quality)
         when "Backstage passes to a TAFKAL80ETC concert"
-          BackstagePass.build(item)
+          BackstagePass.build(item.sell_in, item.quality)
         when "Sulfuras, Hand of Ragnaros"
-          Sulfuras.new
+          Sulfuras.new(item.sell_in, item.quality)
         when "Conjured Mana Cake"
-          Conjured.build(item)
+          Conjured.build(item.sell_in, item.quality)
         else
-          build(item)
+          build(item.sell_in, item.quality)
         end
       end
 
-      def self.build(item)
-        if item.sell_in <= 0
-          self::Expired.new(item)
+      def self.build(sell_in, quality)
+        if sell_in <= 0
+          self::Expired.new(sell_in, quality)
         else
-          new(item)
+          new(sell_in, quality)
         end
       end
 
-      def initialize(item)
-        @item = item
+      attr_reader :sell_in, :quality
+
+      def initialize(sell_in, quality)
+        @sell_in = sell_in
+        @quality = quality
       end
 
       def update!
@@ -49,81 +39,92 @@ class GildedRose
       private
 
       def decrease_sell_in!
-        @item.sell_in -= 1
+        @sell_in -= 1
       end
 
       def update_quality!
-        Quality.degrade(@item)
+        degrade_quality!
       end
 
       class Expired < Good
         private def update_quality!
-          2.times { Quality.degrade(@item) }
+          2.times { degrade_quality! }
         end
+      end
+
+      MIN_QUALITY = 0
+      MAX_QUALITY = 50
+
+      def degrade_quality!
+        @quality -= 1 if quality > MIN_QUALITY
+      end
+
+      def increase_quality!
+        @quality += 1 if quality < MAX_QUALITY
       end
     end
 
     class Conjured < Good
       private def update_quality!
-        2.times { Quality.degrade(@item) }
+        2.times { degrade_quality! }
       end
 
       class Expired < Conjured
         private def update_quality!
-          4.times { Quality.degrade(@item) }
+          4.times { degrade_quality! }
         end
       end
     end
 
     class AgedBrie < Good
       private def update_quality!
-        Quality.increase(@item)
+        increase_quality!
       end
 
       class Expired < AgedBrie
         private def update_quality!
-          2.times { Quality.increase(@item) }
+          2.times { increase_quality! }
         end
       end
     end
 
     class BackstagePass < Good
-      def self.build(item)
-        if item.sell_in <= 0
-          Expired.new(item)
-        elsif item.sell_in <= 5
-          LessThan5Days.new(item)
-        elsif item.sell_in <= 10
-          LessThan10Days.new(item)
+      def self.build(sell_in, quality)
+        if sell_in <= 0
+          Expired.new(sell_in, quality)
+        elsif sell_in <= 5
+          LessThan5Days.new(sell_in, quality)
+        elsif sell_in <= 10
+          LessThan10Days.new(sell_in, quality)
         else
-          new(item)
+          new(sell_in, quality)
         end
       end
 
       private def update_quality!
-        Quality.increase(@item)
+        increase_quality!
       end
 
       class LessThan10Days < BackstagePass
         private def update_quality!
-          2.times { Quality.increase(@item) }
+          2.times { increase_quality! }
         end
       end
 
       class LessThan5Days < BackstagePass
         private def update_quality!
-          3.times { Quality.increase(@item) }
+          3.times { increase_quality! }
         end
       end
 
       class Expired < BackstagePass
         private def update_quality!
-          @item.quality = 0
+          @quality = quality - quality
         end
       end
     end
 
-    class Sulfuras
+    class Sulfuras < Good
       def update!
       end
     end
@@ -136,7 +137,10 @@ class GildedRose
 
   def update_quality
     @items.each do |item|
-      Inventory::Good.for(item).update!
+      good = Inventory::Good.for(item)
+      good.update!
+      item.sell_in = good.sell_in
+      item.quality = good.quality
     end
   end
 end
