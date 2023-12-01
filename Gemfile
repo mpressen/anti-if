@@ -4,6 +4,7 @@ gem 'rspec'
 gem 'debug'
 gem 'guard'
 gem 'guard-rspec', require: false
+gem 'rubocop', require: false
 
 group :test do
   gem 'simplecov', require: false

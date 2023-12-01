@@ -28,13 +28,13 @@ class GildedRose
     class Good
       def self.for(item)
         case item.name
-        when "Aged Brie"
+        when 'Aged Brie'
           AgedBrie.build(item.sell_in, item.quality)
-        when "Backstage passes to a TAFKAL80ETC concert"
+        when 'Backstage passes to a TAFKAL80ETC concert'
           BackstagePass.build(item.sell_in, item.quality)
-        when "Sulfuras, Hand of Ragnaros"
+        when 'Sulfuras, Hand of Ragnaros'
           Sulfuras.new(item.sell_in, item.quality)
-        when "Conjured Mana Cake"
+        when 'Conjured Mana Cake'
           Conjured.build(item.sell_in, item.quality)
         else
           build(item.sell_in, item.quality)
@@ -49,7 +49,8 @@ class GildedRose
         end
       end
 
-      include Quality, SellIn
+      include SellIn
+      include Quality
 
       def initialize(sell_in, quality)
         @sell_in = sell_in
@@ -139,8 +140,7 @@ class GildedRose
     end
 
     class Sulfuras < Good
-      def update!
-      end
+      def update!; end
     end
   end
 
@@ -167,7 +167,7 @@ class Item
     @quality = quality
   end
 
-  def to_s()
+  def to_s
     "#{@name}, #{@sell_in}, #{@quality}"
   end
 end
