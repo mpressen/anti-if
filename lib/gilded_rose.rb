@@ -4,24 +4,14 @@ class GildedRose
       MIN_QUALITY = 0
       MAX_QUALITY = 50
 
-      attr_reader :quality
-
       private
 
       def degrade_quality!
-        @quality -= 1 if quality > MIN_QUALITY
+        self.quality -= 1 if quality > MIN_QUALITY
       end
 
       def increase_quality!
-        @quality += 1 if quality < MAX_QUALITY
-      end
-    end
-
-    module SellIn
-      attr_reader :sell_in
-
-      private def decrease_sell_in!
-        @sell_in -= 1
+        self.quality += 1 if quality < MAX_QUALITY
       end
     end
 
@@ -49,8 +39,10 @@ class GildedRose
         end
       end
 
-      include SellIn
       include Quality
+
+      attr_reader :sell_in
+      attr_accessor :quality
 
       def initialize(sell_in, quality)
         @sell_in = sell_in
@@ -63,6 +55,10 @@ class GildedRose
       end
 
       private
+
+      def decrease_sell_in!
+        @sell_in -= 1
+      end
 
       def update_quality!
         degrade_quality!
@@ -133,9 +129,7 @@ class GildedRose
           @sell_in = sell_in
         end
 
-        private def update_quality!
-          @quality = 0
-        end
+        def quality = 0
       end
     end
 
