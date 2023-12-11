@@ -50,37 +50,69 @@ class GildedRose
       end
     end
 
-    class GoodsFactory
+    module GoodsFactory
       def self.for(item)
         case item.name
         when 'Aged Brie'
-          AgedBrie.build(item.sell_in, item.quality)
+          build_aged_brie(item.sell_in, item.quality)
         when 'Backstage passes to a TAFKAL80ETC concert'
-          BackstagePass.build(item.sell_in, item.quality)
+          build_backstage_pass(item.sell_in, item.quality)
         when 'Conjured Mana Cake'
-          Conjured.build(item.sell_in, item.quality)
+          build_conjured(item.sell_in, item.quality)
         when 'Sulfuras, Hand of Ragnaros'
-          Good.new(item.sell_in, item.quality, sell_in_handler: Handlers::DoNothing,
-                                               quality_handler: Handlers::DoNothing)
+          build_sulfuras(item.sell_in, item.quality)
         else
-          Good.build(item.sell_in, item.quality)
+          build_regular_good(item.sell_in, item.quality)
         end
       end
-    end
 
-    class Good
-      def self.build(sell_in, quality)
+      def self.build_aged_brie(sell_in, quality)
         if expired?(sell_in)
-          new(sell_in, quality, quality_handler: Handlers::Multiplier.new(2, Handlers::Quality::Substract))
+          Good.new(sell_in, quality, quality_handler: Handlers::Multiplier.new(2, Handlers::Quality::Add))
         else
-          new(sell_in, quality)
+          Good.new(sell_in, quality, quality_handler: Handlers::Quality::Add)
+        end
+      end
+
+      def self.build_backstage_pass(sell_in, quality)
+        if expired?(sell_in)
+          Good.new(sell_in, quality, quality_handler: Handlers::Reset)
+        elsif sell_in <= 5
+          Good.new(sell_in, quality, quality_handler: Handlers::Multiplier.new(3, Handlers::Quality::Add))
+        elsif sell_in <= 10
+          Good.new(sell_in, quality, quality_handler: Handlers::Multiplier.new(2, Handlers::Quality::Add))
+        else
+          Good.new(sell_in, quality, quality_handler: Handlers::Quality::Add)
+        end
+      end
+
+      def self.build_conjured(sell_in, quality)
+        if expired?(sell_in)
+          Good.new(sell_in, quality, quality_handler: Handlers::Multiplier.new(4, Handlers::Quality::Substract))
+        else
+          Good.new(sell_in, quality, quality_handler: Handlers::Multiplier.new(2, Handlers::Quality::Substract))
+        end
+      end
+
+      def self.build_sulfuras(sell_in, quality)
+        Good.new(sell_in, quality, sell_in_handler: Handlers::DoNothing,
+                                   quality_handler: Handlers::DoNothing)
+      end
+
+      def self.build_regular_good(sell_in, quality)
+        if expired?(sell_in)
+          Good.new(sell_in, quality, quality_handler: Handlers::Multiplier.new(2, Handlers::Quality::Substract))
+        else
+          Good.new(sell_in, quality)
         end
       end
 
       def self.expired?(sell_in)
         sell_in <= 0
       end
+    end
 
+    class Good
       attr_reader :sell_in, :quality
 
       def initialize(sell_in, quality, sell_in_handler: Handlers::Substract,
@@ -94,40 +126,6 @@ class GildedRose
       def update!
         @sell_in = @sell_in_handler.execute(sell_in)
         @quality = @quality_handler.execute(quality)
-      end
-    end
-
-    class Conjured < Good
-      def self.build(sell_in, quality)
-        if expired?(sell_in)
-          new(sell_in, quality, quality_handler: Handlers::Multiplier.new(4, Handlers::Quality::Substract))
-        else
-          new(sell_in, quality, quality_handler: Handlers::Multiplier.new(2, Handlers::Quality::Substract))
-        end
-      end
-    end
-
-    class AgedBrie < Good
-      def self.build(sell_in, quality)
-        if expired?(sell_in)
-          new(sell_in, quality, quality_handler: Handlers::Multiplier.new(2, Handlers::Quality::Add))
-        else
-          new(sell_in, quality, quality_handler: Handlers::Quality::Add)
-        end
-      end
-    end
-
-    class BackstagePass < Good
-      def self.build(sell_in, quality)
-        if expired?(sell_in)
-          new(sell_in, quality, quality_handler: Handlers::Reset)
-        elsif sell_in <= 5
-          new(sell_in, quality, quality_handler: Handlers::Multiplier.new(3, Handlers::Quality::Add))
-        elsif sell_in <= 10
-          new(sell_in, quality, quality_handler: Handlers::Multiplier.new(2, Handlers::Quality::Add))
-        else
-          new(sell_in, quality, quality_handler: Handlers::Quality::Add)
-        end
       end
     end
   end
