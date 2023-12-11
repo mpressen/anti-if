@@ -1,140 +1,134 @@
 class GildedRose
   module Inventory
-    module Quality
-      MIN_QUALITY = 0
-      MAX_QUALITY = 50
-
-      private
-
-      def degrade_quality!
-        self.quality -= 1 if quality > MIN_QUALITY
+    module Handlers
+      module Substract
+        def self.execute(value)
+          value - 1
+        end
       end
 
-      def increase_quality!
-        self.quality += 1 if quality < MAX_QUALITY
+      module Quality
+        module Add
+          MAX_QUALITY = 50
+
+          def self.execute(quality)
+            quality < MAX_QUALITY ? quality + 1 : quality
+          end
+        end
+
+        module Substract
+          MIN_QUALITY = 0
+
+          def self.execute(quality)
+            quality > MIN_QUALITY ? quality - 1 : quality
+          end
+        end
+      end
+
+      module Reset
+        def self.execute(_value)
+          0
+        end
+      end
+
+      module DoNothing
+        def self.execute(value)
+          value
+        end
+      end
+
+      class Multiplier
+        def initialize(multiplier, handler)
+          @multiplier = multiplier
+          @handler = handler
+        end
+
+        def execute(value)
+          @multiplier.times { value = @handler.execute(value) }
+          value
+        end
       end
     end
 
-    class Good
+    class GoodsFactory
       def self.for(item)
         case item.name
         when 'Aged Brie'
           AgedBrie.build(item.sell_in, item.quality)
         when 'Backstage passes to a TAFKAL80ETC concert'
           BackstagePass.build(item.sell_in, item.quality)
-        when 'Sulfuras, Hand of Ragnaros'
-          Sulfuras.new(item.sell_in, item.quality)
         when 'Conjured Mana Cake'
           Conjured.build(item.sell_in, item.quality)
+        when 'Sulfuras, Hand of Ragnaros'
+          Good.new(item.sell_in, item.quality, sell_in_handler: Handlers::DoNothing,
+                                               quality_handler: Handlers::DoNothing)
         else
-          build(item.sell_in, item.quality)
+          Good.build(item.sell_in, item.quality)
         end
       end
+    end
 
+    class Good
       def self.build(sell_in, quality)
-        if sell_in <= 0
-          self::Expired.new(sell_in, quality)
+        if expired?(sell_in)
+          new(sell_in, quality, quality_handler: Handlers::Multiplier.new(2, Handlers::Quality::Substract))
         else
           new(sell_in, quality)
         end
       end
 
-      include Quality
+      def self.expired?(sell_in)
+        sell_in <= 0
+      end
 
-      attr_reader :sell_in
-      attr_accessor :quality
+      attr_reader :sell_in, :quality
 
-      def initialize(sell_in, quality)
+      def initialize(sell_in, quality, sell_in_handler: Handlers::Substract,
+                     quality_handler: Handlers::Quality::Substract)
         @sell_in = sell_in
         @quality = quality
+        @sell_in_handler = sell_in_handler
+        @quality_handler = quality_handler
       end
 
       def update!
-        decrease_sell_in!
-        update_quality!
-      end
-
-      private
-
-      def decrease_sell_in!
-        @sell_in -= 1
-      end
-
-      def update_quality!
-        degrade_quality!
-      end
-
-      class Expired < Good
-        private def update_quality!
-          2.times { degrade_quality! }
-        end
+        @sell_in = @sell_in_handler.execute(sell_in)
+        @quality = @quality_handler.execute(quality)
       end
     end
 
     class Conjured < Good
-      private def update_quality!
-        2.times { degrade_quality! }
-      end
-
-      class Expired < Good
-        private def update_quality!
-          4.times { degrade_quality! }
+      def self.build(sell_in, quality)
+        if expired?(sell_in)
+          new(sell_in, quality, quality_handler: Handlers::Multiplier.new(4, Handlers::Quality::Substract))
+        else
+          new(sell_in, quality, quality_handler: Handlers::Multiplier.new(2, Handlers::Quality::Substract))
         end
       end
     end
 
     class AgedBrie < Good
-      private def update_quality!
-        increase_quality!
-      end
-
-      class Expired < Good
-        private def update_quality!
-          2.times { increase_quality! }
+      def self.build(sell_in, quality)
+        if expired?(sell_in)
+          new(sell_in, quality, quality_handler: Handlers::Multiplier.new(2, Handlers::Quality::Add))
+        else
+          new(sell_in, quality, quality_handler: Handlers::Quality::Add)
         end
       end
     end
 
     class BackstagePass < Good
       def self.build(sell_in, quality)
-        if sell_in <= 0
-          Expired.new(sell_in)
+        if expired?(sell_in)
+          new(sell_in, quality, quality_handler: Handlers::Reset)
         elsif sell_in <= 5
-          LessThan5Days.new(sell_in, quality)
+          new(sell_in, quality, quality_handler: Handlers::Multiplier.new(3, Handlers::Quality::Add))
         elsif sell_in <= 10
-          LessThan10Days.new(sell_in, quality)
+          new(sell_in, quality, quality_handler: Handlers::Multiplier.new(2, Handlers::Quality::Add))
         else
-          new(sell_in, quality)
+          new(sell_in, quality, quality_handler: Handlers::Quality::Add)
         end
       end
-
-      private def update_quality!
-        increase_quality!
-      end
-
-      class LessThan10Days < Good
-        private def update_quality!
-          2.times { increase_quality! }
-        end
-      end
-
-      class LessThan5Days < Good
-        private def update_quality!
-          3.times { increase_quality! }
-        end
-      end
-
-      class Expired < Good
-        def initialize(sell_in)
-          @sell_in = sell_in
-        end
-
-        def quality = 0
-      end
-    end
-
-    class Sulfuras < Good
-      def update!; end
     end
   end
 
@@ -144,7 +138,7 @@ class GildedRose
 
   def update_quality
     @items.each do |item|
-      good = Inventory::Good.for(item)
+      good = Inventory::GoodsFactory.for(item)
       good.update!
       item.sell_in = good.sell_in
       item.quality = good.quality
